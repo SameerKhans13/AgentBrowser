@@ -12,7 +12,8 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "db:push": "turbo db:push",
-    "db:generate": "turbo db:generate"
+    "db:generate": "turbo db:generate",
+    "db:seed": "npm run db:seed --workspace=@genai/database"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",
