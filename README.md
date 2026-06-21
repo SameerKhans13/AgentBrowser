@@ -1,4 +1,4 @@
-# Antigravity Autonomous Web Agent Monorepo
+# Autonomous Web Agent Monorepo
 
 An intelligent, autonomous website automation agent (a mini-version of tools like "Browser Use") built within a high-performance **TypeScript Monorepo** architecture. The agent acts autonomously, navigating web pages, identifying elements through a **Linearized Accessibility Tree**, making actions via pixel coordinates, and persistence logging inside **PostgreSQL** using **Drizzle ORM**.
 
@@ -22,7 +22,7 @@ genai/
 ├── turbo.json                   # Turborepo build/dev pipelines
 ├── docker-compose.yml           # Local PostgreSQL container definition
 ├── apps/
-│   ├── agent/                   # TypeScript browser agent service (Playwright + Gemini 1.5 Flash)
+│   ├── agent/                   # TypeScript browser agent service (Playwright + LLM)
 │   └── web/                     # React Vite console dashboard
 └── packages/
     ├── database/                # Shared DB schemas and pooling client (Drizzle + pg Pool)
@@ -35,7 +35,7 @@ genai/
 
 *   **Node.js:** `v18.0.0` or higher
 *   **Docker:** For spinning up the local PostgreSQL database
-*   **Gemini API Key:** For powering the agent's decision engine
+*   **LLM API Key:** For powering the agent's decision engine
 
 ---
 
@@ -58,9 +58,9 @@ Create a `.env` file inside `apps/agent/` (copying the structure from `.env.exam
 ```bash
 cp apps/agent/.env.example apps/agent/.env
 ```
-Open `apps/agent/.env` and insert your Gemini API Key:
+Open `apps/agent/.env` and insert your LLM API Key:
 ```env
-GEMINI_API_KEY=your_actual_gemini_api_key_here
+LLM_API_KEY=your_actual_llm_api_key_here
 DATABASE_URL=postgresql://postgres:password@localhost:5432/genai
 ```
 
@@ -91,7 +91,7 @@ Our custom locator script (`detector.ts`) evaluates the active viewport:
 *   Filters out non-interactive tags, zero-size objects, and offscreen coordinate coordinates.
 *   Resolves labels using accessible priority: `aria-label` ➔ `placeholder` ➔ `innerText` ➔ `id` ➔ `name`.
 *   Calculates center-coordinate coordinates $(x, y)$ dynamically.
-*   Passes an ultra-lightweight list to **Gemini 1.5 Flash**, keeping token costs low and decision speed extremely high.
+*   Passes an ultra-lightweight list to the **LLM**, keeping token costs low and decision speed extremely high.
 
 ---
 

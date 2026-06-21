@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This document lists common issues encountered during setup, development, or deployment of the Antigravity Autonomous Web Agent, along with their solutions.
+This document lists common issues encountered during setup, development, or deployment of the Autonomous Web Agent, along with their solutions.
 
 ---
 
