@@ -1,0 +1,22 @@
+{
+  "name": "genai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.8.1",
+  "description": "Autonomous browser agent monorepo with Turborepo, React, Playwright, Drizzle, and Gemini 1.5 Flash",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "db:push": "turbo db:push",
+    "db:generate": "turbo db:generate"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "turbo": "^2.0.4"
+  }
+}
