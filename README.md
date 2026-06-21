@@ -92,3 +92,13 @@ Our custom locator script (`detector.ts`) evaluates the active viewport:
 *   Resolves labels using accessible priority: `aria-label` ➔ `placeholder` ➔ `innerText` ➔ `id` ➔ `name`.
 *   Calculates center-coordinate coordinates $(x, y)$ dynamically.
 *   Passes an ultra-lightweight list to **Gemini 1.5 Flash**, keeping token costs low and decision speed extremely high.
+
+---
+
+## 📚 Documentation & Verification
+
+For more details on setting up, developing, and deploying the monorepo packages, please see:
+*   [System Architecture Guides](./docs/architecture.md) — Technical details on the Sense-Think-Act loop.
+*   [REST API Contracts](./docs/api-contracts.md) — Endpoint schemas for agent/dashboard coordination.
+*   [Troubleshooting Guide](./docs/troubleshooting.md) — Fixing common connection, docker, or playwright issues.
+*   [Database Package Seeding](./packages/database/README.md) — Setting up local test records for debugging.
