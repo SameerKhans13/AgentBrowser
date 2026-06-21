@@ -76,6 +76,18 @@ export declare const agentRuns: import("drizzle-orm/pg-core").PgTableWithColumns
             enumValues: [string, ...string[]];
             baseColumn: never;
         }, {}, {}>;
+        instructions: import("drizzle-orm/pg-core").PgColumn<{
+            name: "instructions";
+            tableName: "agent_runs";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+        }, {}, {}>;
     };
     dialect: "pg";
 }>, actionLogs: import("drizzle-orm/pg-core").PgTableWithColumns<{

@@ -23,6 +23,7 @@ exports.agentRuns = (0, pg_core_1.pgTable)('agent_runs', {
     startedAt: (0, pg_core_1.timestamp)('started_at').defaultNow().notNull(),
     completedAt: (0, pg_core_1.timestamp)('completed_at'),
     errorLog: (0, pg_core_1.text)('error_log'),
+    instructions: (0, pg_core_1.text)('instructions'),
 });
 // 3. Action Logs Table
 exports.actionLogs = (0, pg_core_1.pgTable)('action_logs', {

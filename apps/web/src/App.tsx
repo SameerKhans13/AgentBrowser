@@ -186,33 +186,46 @@ export default function App() {
   };
 
   // Fetch runs list (Polled every 2 seconds via react-query)
-  const { data: runs = MOCK_RUNS, isLoading: isLoadingRuns } = useQuery<AgentRun[]>({
+  const { data: queryRuns } = useQuery<AgentRun[]>({
     queryKey: ['agentRuns'],
     queryFn: async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/runs`);
         return res.data;
       } catch (err) {
-        // Fallback silently to presentation-grade mock runs
-        return MOCK_RUNS;
+        return [];
       }
     },
     refetchInterval: 2000
   });
 
+  const runs = (queryRuns && queryRuns.length > 0) ? queryRuns : MOCK_RUNS;
+
   // Fetch action logs for selected run (Polled every 2 seconds)
-  const { data: logs = MOCK_LOGS[selectedRunId] || [] } = useQuery<ActionLog[]>({
+  const { data: queryLogs } = useQuery<ActionLog[]>({
     queryKey: ['actionLogs', selectedRunId],
     queryFn: async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/runs/${selectedRunId}/logs`);
         return res.data;
       } catch (err) {
-        return MOCK_LOGS[selectedRunId] || [];
+        return [];
       }
     },
     refetchInterval: 2000
   });
+
+  const logs = (queryLogs && queryLogs.length > 0) ? queryLogs : (MOCK_LOGS[selectedRunId] || []);
+
+  // Automatically select the first real run when they are fetched
+  React.useEffect(() => {
+    if (queryRuns && queryRuns.length > 0) {
+      const runExists = queryRuns.some(r => r.id === selectedRunId);
+      if (!runExists) {
+        setSelectedRunId(queryRuns[0].id);
+      }
+    }
+  }, [queryRuns]);
 
   // Get active run
   const activeRun = runs.find(r => r.id === selectedRunId);
