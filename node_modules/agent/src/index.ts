@@ -20,7 +20,7 @@ import { detectInteractiveElements, InteractiveElement } from './detector';
 
 dotenv.config();
 
-const apiKey = process.env.GEMINI_API_KEY || '';
+const apiKey = process.env.LLM_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
 
 interface AgentTask {
@@ -54,19 +54,19 @@ export class AutonomousAgent {
       }
       return JSON.parse(cleaned.trim());
     } catch (e) {
-      console.warn('Failed to parse Gemini output as JSON, attempting raw parsing:', rawText);
+      console.warn('Failed to parse LLM output as JSON, attempting raw parsing:', rawText);
       // Fallback: try regex to extract JSON object
       const match = rawText.match(/\{[\s\S]*\}/);
       if (match) {
         return JSON.parse(match[0]);
       }
-      throw new Error(`Invalid response format from Gemini: ${rawText}`);
+      throw new Error(`Invalid response format from LLM: ${rawText}`);
     }
   }
 
   async run(task: AgentTask) {
     console.log(`Starting run session: ${task.runId}`);
-    
+
     // First, insert the record so it exists before any subsequent updates
     await db.insert(agentRuns).values({
       id: task.runId,
@@ -92,12 +92,12 @@ export class AutonomousAgent {
     try {
       // Tool 2: navigateToUrl
       await navigateToUrl(page, task.targetUrl);
-      
+
       // Wait for React application rendering to complete
       await page.waitForSelector('input', { timeout: 10000 });
 
       this.stepCounter++;
-      
+
       // Tool 3: takeScreenshot
       const initialScreenshot = path.join('screenshots', `run-${task.runId}-step-1.png`);
       await takeScreenshot(page, initialScreenshot);
@@ -106,7 +106,7 @@ export class AutonomousAgent {
         runId: task.runId,
         stepIndex: this.stepCounter,
         actionType: 'GOTO_URL',
-        thought: `Navigating to target landing URL: ${task.targetUrl}`,
+        thought: `Navigating to target landing URL: ${task.targetUrl}`, 
         parameters: { url: task.targetUrl },
         screenshotUrl: initialScreenshot,
       });
@@ -126,7 +126,7 @@ export class AutonomousAgent {
 
         // 1. SENSE Phase: Detect elements on the current page
         const elements = await detectInteractiveElements(page);
-        
+
         // Tool 3: takeScreenshot
         const screenshotPath = path.join('screenshots', `run-${task.runId}-step-${this.stepCounter}.png`);
         await takeScreenshot(page, screenshotPath);
@@ -139,24 +139,24 @@ export class AutonomousAgent {
           .map(h => `- Step ${h.stepIndex}: Action: ${h.action} | Thought: "${h.thought}" | Element: "${h.label}"`)
           .join('\n');
 
-        // 2. THINK Phase: Prompt Gemini
+        // 2. THINK Phase: Prompt LLM
         const instructionsText = task.instructions
           ? `CRITICAL CUSTOM INSTRUCTIONS TO FOLLOW:\n${task.instructions}`
-          : `Objective: 
+          : `Objective:
 1. Identify the input fields (e.g. Name, Username, Title) and description/textarea fields on the page.
 2. Fill them with dynamic, realistic demo data (for Username, you can enter "Sameer Khan", and for Description/Bio, you can enter "AI engineer building GradeBench").
-3. Click the Submit/Submit Form button to complete the form submission.
+3. Click the Submit/Submit Form button to complete the form submission. 
 4. When both fields are filled and the form is submitted, call action: "done".`;
 
         const prompt = `
-You are an autonomous web automation agent controlling a browser.
+You are an autonomous web automation agent controlling a browser.       
 Your current target URL is: ${task.targetUrl}
 
 ${instructionsText}
 
 Rules:
-- Do NOT navigate to any other URL unless required to submit the form.
-- Do NOT attempt login or account creation unless explicitly asked.
+- Do NOT navigate to any other URL unless required to submit the form.  
+- Do NOT attempt login or account creation unless explicitly asked.     
 - If a field is already correctly filled, skip it.
 - Call action "done" as soon as the objective is met, or if you verify a success toast/state is showing.
 
@@ -168,14 +168,15 @@ ${pastStepsText || 'None yet'}
 
 Your task is to identify the next single action to take. Return ONLY a JSON object matching this schema, with NO extra markdown or conversational text wrapping:
 {
-  "thought": "Your high-level reasoning for choosing this action.",
+  "thought": "Your high-level reasoning for choosing this action.",     
   "action": "click" | "send_keys" | "scroll" | "double_click" | "done" | "finish",
   "elementId": number,
   "text": "string (applicable only for send_keys action)"
 }
 `;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
+        const selectedModel = process.env.LLM_MODEL || 'gemini-3.1-flash-lite';
+        const model = genAI.getGenerativeModel({ model: selectedModel });
         const result = await model.generateContent(prompt);
         const textResponse = result.response.text();
 
@@ -195,7 +196,7 @@ Your task is to identify the next single action to take. Return ONLY a JSON obje
         }
 
         // Find the designated element
-        const target = elements.find(e => e.id === decision.elementId);
+        const target = elements.find(e => e.id === decision.elementId); 
         if (!target && decision.action !== 'scroll') {
           throw new Error(`LLM attempted to interact with element ID ${decision.elementId} which is not currently visible on page.`);
         }
@@ -221,7 +222,7 @@ Your task is to identify the next single action to take. Return ONLY a JSON obje
             break;
 
           case 'send_keys':
-            await sendKeys(page, target!.x, target!.y, decision.text);
+            await sendKeys(page, target!.x, target!.y, decision.text);  
             await logToDb(db, {
               runId: task.runId,
               stepIndex: this.stepCounter,
@@ -279,7 +280,7 @@ Your task is to identify the next single action to take. Return ONLY a JSON obje
             throw new Error(`Unknown action type decided by model: ${decision.action}`);
         }
 
-        // Wait a short time for state updates or animation renders
+        // Wait a short time for state updates or animation renders     
         await page.waitForTimeout(1500);
       }
 
@@ -290,13 +291,13 @@ Your task is to identify the next single action to take. Return ONLY a JSON obje
           .where(eq(agentRuns.id, task.runId));
       } else {
         await db.update(agentRuns)
-          .set({ status: 'COMPLETED', completedAt: new Date() })
+          .set({ status: 'COMPLETED', completedAt: new Date() })        
           .where(eq(agentRuns.id, task.runId));
       }
 
     } catch (err: any) {
       console.error('Execution failure inside Sense-Think-Act loop:', err);
-      
+
       await logToDb(db, {
         runId: task.runId,
         stepIndex: this.stepCounter,

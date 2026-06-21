@@ -108,7 +108,7 @@ const MOCK_LOGS: Record<string, ActionLog[]> = {
       stepIndex: 5,
       actionType: 'SEND_KEYS',
       thought: 'Focusing on Description textarea at x=450, y=410 and entering the descriptive biography details.',
-      parameters: { x: 450, y: 410, text: 'This is an autonomous text representation filled perfectly by our Gemini-powered browser agent.', label: 'Description' },
+      parameters: { x: 450, y: 410, text: 'This is an autonomous text representation filled perfectly by our LLM-powered browser agent.', label: 'Description' },
       screenshotUrl: 'https://picsum.photos/800/500?random=4',
       createdAt: new Date(Date.now() - 3560000).toISOString()
     },
@@ -265,7 +265,7 @@ export default function App() {
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.025em' }}>
-              Antigravity Web Agent <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#6366f1', border: '1px solid #6366f1', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>V1.0</span>
+              Autonomous Web Agent <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#6366f1', border: '1px solid #6366f1', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>V1.0</span>
             </h1>
             <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
               Linearized Accessibility Tree & Coordinate Mapping Control Console
@@ -494,7 +494,7 @@ export default function App() {
               <Layers size={14} color="#6366f1" /> Sense-Think-Act Framework
             </h3>
             <p style={{ margin: 0, color: '#94a3b8' }}>
-              The agent runs coordinates extraction locally from the browser viewport, feeds visual coordinates to Gemini 1.5 Flash, plans coordinates mouse triggers, and logs actions into PostgreSQL via Drizzle.
+              The agent runs coordinates extraction locally from the browser viewport, feeds visual coordinates to the LLM, plans coordinates mouse triggers, and logs actions into PostgreSQL via Drizzle.
             </p>
           </div>
         </section>
