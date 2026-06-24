@@ -14,7 +14,7 @@ process.env.RUN_MODE = 'server';
 import path from 'path';
 
 const app = express();
-const port = 3001;
+const port = parseInt(process.env.PORT || '3001', 10);
 
 app.use(cors());
 app.use(express.json());
@@ -84,6 +84,6 @@ app.post('/api/run', async (req, res) => {
   res.json({ id: runId, status: 'PENDING', targetUrl, instructions });
 });
 
-app.listen(port, () => {
-  console.log(`[API Server] Running on http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`[API Server] Running on http://0.0.0.0:${port}`);
 });
