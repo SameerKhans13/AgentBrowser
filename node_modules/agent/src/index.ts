@@ -20,13 +20,14 @@ import { detectInteractiveElements, InteractiveElement } from './detector';
 
 dotenv.config();
 
-const apiKey = process.env.LLM_API_KEY || '';
+const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
 
 interface AgentTask {
   runId: string;
   targetUrl: string;
   instructions?: string;
+  cleanSteps?: boolean;
 }
 
 interface StepHistoryItem {
@@ -68,17 +69,33 @@ export class AutonomousAgent {
     console.log(`Starting run session: ${task.runId}`);
 
     // First, insert the record so it exists before any subsequent updates
-    await db.insert(agentRuns).values({
-      id: task.runId,
-      targetUrl: task.targetUrl,
-      status: 'PENDING',
-      instructions: task.instructions || null,
-    });
+    try {
+      await db.insert(agentRuns).values({
+        id: task.runId,
+        targetUrl: task.targetUrl,
+        status: 'PENDING',
+        instructions: task.instructions || null,
+      });
 
-    // Set run status to RUNNING in PostgreSQL
-    await db.update(agentRuns)
-      .set({ status: 'RUNNING' })
-      .where(eq(agentRuns.id, task.runId));
+      // Set run status to RUNNING in PostgreSQL
+      await db.update(agentRuns)
+        .set({ status: 'RUNNING' })
+        .where(eq(agentRuns.id, task.runId));
+    } catch (err) {
+      console.warn('[Database Fallback]: Inserting pending run to in-memory store.');
+      const memRuns = (global as any).memoryRuns;
+      if (memRuns) {
+        memRuns.unshift({
+          id: task.runId,
+          targetUrl: task.targetUrl,
+          status: 'RUNNING',
+          startedAt: new Date().toISOString(),
+          completedAt: null,
+          errorLog: null,
+          instructions: task.instructions || null,
+        });
+      }
+    }
 
     // Tool 1: openBrowser
     const { browser, context, page } = await openBrowser();
@@ -111,6 +128,17 @@ export class AutonomousAgent {
         screenshotUrl: initialScreenshot,
       });
 
+      // Delete the very first screenshot file (step 1 - browser load state) when advancing to save storage
+      if (task.cleanSteps) {
+        try {
+          const fs = require('fs');
+          const oldPath = path.join('screenshots', `run-${task.runId}-step-1.png`);
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+          }
+        } catch (e) {}
+      }
+
       this.stepHistory.push({
         stepIndex: this.stepCounter,
         action: 'GOTO_URL',
@@ -126,6 +154,24 @@ export class AutonomousAgent {
 
         // 1. SENSE Phase: Detect elements on the current page
         const elements = await detectInteractiveElements(page);
+
+        // Delete previous step screenshot files, leaving only the last captured step image
+        if (task.cleanSteps) {
+          try {
+            const fs = require('fs');
+            const glob = require('path');
+            const currentStep = this.stepCounter;
+            // Look for any step images smaller than current step and unlink them
+            for (let prevStep = 1; prevStep < currentStep; prevStep++) {
+              const oldPath = glob.join('screenshots', `run-${task.runId}-step-${prevStep}.png`);
+              if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+              }
+            }
+          } catch (e) {
+            // ignore cleanup errors
+          }
+        }
 
         // Tool 3: takeScreenshot
         const screenshotPath = path.join('screenshots', `run-${task.runId}-step-${this.stepCounter}.png`);
@@ -175,7 +221,7 @@ Your task is to identify the next single action to take. Return ONLY a JSON obje
 }
 `;
 
-        const selectedModel = process.env.LLM_MODEL || 'gemini-3.1-flash-lite';
+        const selectedModel = process.env.LLM_MODEL || 'gemini-2.5-flash';
         const model = genAI.getGenerativeModel({ model: selectedModel });
         const result = await model.generateContent(prompt);
         const textResponse = result.response.text();
@@ -286,13 +332,36 @@ Your task is to identify the next single action to take. Return ONLY a JSON obje
 
       if (this.stepCounter > maxSteps) {
         console.warn('Exceeded maximum allowed execution steps (15). Failing run.');
-        await db.update(agentRuns)
-          .set({ status: 'FAILED', completedAt: new Date(), errorLog: 'Max step limit (15) reached without finishing.' })
-          .where(eq(agentRuns.id, task.runId));
+        try {
+          await db.update(agentRuns)
+            .set({ status: 'FAILED', completedAt: new Date(), errorLog: 'Max step limit (15) reached without finishing.' })
+            .where(eq(agentRuns.id, task.runId));
+        } catch (e) {
+          const memRuns = (global as any).memoryRuns;
+          if (memRuns) {
+            const r = memRuns.find((x: any) => x.id === task.runId);
+            if (r) {
+              r.status = 'FAILED';
+              r.completedAt = new Date().toISOString();
+              r.errorLog = 'Max step limit (15) reached without finishing.';
+            }
+          }
+        }
       } else {
-        await db.update(agentRuns)
-          .set({ status: 'COMPLETED', completedAt: new Date() })        
-          .where(eq(agentRuns.id, task.runId));
+        try {
+          await db.update(agentRuns)
+            .set({ status: 'COMPLETED', completedAt: new Date() })        
+            .where(eq(agentRuns.id, task.runId));
+        } catch (e) {
+          const memRuns = (global as any).memoryRuns;
+          if (memRuns) {
+            const r = memRuns.find((x: any) => x.id === task.runId);
+            if (r) {
+              r.status = 'COMPLETED';
+              r.completedAt = new Date().toISOString();
+            }
+          }
+        }
       }
 
     } catch (err: any) {
@@ -306,19 +375,34 @@ Your task is to identify the next single action to take. Return ONLY a JSON obje
         parameters: { error: err.message },
       });
 
-      await db.update(agentRuns)
-        .set({ status: 'FAILED', completedAt: new Date(), errorLog: err.message })
-        .where(eq(agentRuns.id, task.runId));
+      try {
+        await db.update(agentRuns)
+          .set({ status: 'FAILED', completedAt: new Date(), errorLog: err.message })
+          .where(eq(agentRuns.id, task.runId));
+      } catch (e) {
+        const memRuns = (global as any).memoryRuns;
+        if (memRuns) {
+          const r = memRuns.find((x: any) => x.id === task.runId);
+          if (r) {
+            r.status = 'FAILED';
+            r.completedAt = new Date().toISOString();
+            r.errorLog = err.message;
+          }
+        }
+      }
     } finally {
       await browser.close();
     }
   }
 }
 
-// Instantiate and launch the autonomous web agent session inside CLI mode only
+// Only run when explicitly triggered with --run flag
+// Usage: tsx src/index.ts --run [url]
 const isMainScript = process.argv[1] && (process.argv[1].endsWith('index.ts') || process.argv[1].endsWith('index.js'));
-if (isMainScript) {
-  const args = process.argv.slice(2);
+const shouldRun = process.argv.includes('--run');
+
+if (isMainScript && shouldRun) {
+  const args = process.argv.slice(2).filter(a => a !== '--run');
   const targetUrl = args[0] || 'https://ui.shadcn.com/docs/forms/react-hook-form';
 
   console.log(`Resolved agent target URL: ${targetUrl}`);
@@ -330,4 +414,6 @@ if (isMainScript) {
   }).catch(err => {
     console.error('Fatal initialization error inside entrypoint:', err);
   });
+} else if (isMainScript) {
+  console.log('Agent server ready. Pass --run [url] to start a session.');
 }

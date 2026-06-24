@@ -20,6 +20,12 @@ app.use(cors());
 app.use(express.json());
 app.use('/screenshots', express.static(path.join(process.cwd(), 'screenshots')));
 
+// Local in-memory store for fallback mode when database is not configured/accessible
+const memoryRuns: any[] = [];
+const memoryLogs: any[] = [];
+(global as any).memoryRuns = memoryRuns;
+(global as any).memoryLogs = memoryLogs;
+
 // 1. Get all agent runs
 app.get('/api/runs', async (req, res) => {
   try {
@@ -29,8 +35,8 @@ app.get('/api/runs', async (req, res) => {
       .orderBy(desc(agentRuns.startedAt));
     res.json(runsList);
   } catch (err: any) {
-    console.error('Error fetching runs:', err);
-    res.status(500).json({ error: err.message });
+    console.warn('[Database Fallback]: PostgreSQL database not reachable, reading from memory store.');
+    res.json(memoryRuns);
   }
 });
 
@@ -44,14 +50,17 @@ app.get('/api/runs/:id/logs', async (req, res) => {
       .orderBy(actionLogs.stepIndex);
     res.json(logsList);
   } catch (err: any) {
-    console.error('Error fetching logs:', err);
-    res.status(500).json({ error: err.message });
+    console.warn('[Database Fallback]: PostgreSQL database not reachable, reading logs from memory store.');
+    const filtered = memoryLogs
+      .filter(l => l.runId === req.params.id)
+      .sort((a, b) => a.stepIndex - b.stepIndex);
+    res.json(filtered);
   }
 });
 
 // 3. Trigger a new run asynchronously
 app.post('/api/run', async (req, res) => {
-  const { targetUrl, instructions } = req.body;
+  const { targetUrl, instructions, cleanSteps } = req.body;
   if (!targetUrl) {
     return res.status(400).json({ error: 'targetUrl parameter is required' });
   }
@@ -64,6 +73,7 @@ app.post('/api/run', async (req, res) => {
     runId,
     targetUrl,
     instructions,
+    cleanSteps: !!cleanSteps,
   }).then(() => {
     console.log(`[Server]: Run ${runId} finished successfully.`);
   }).catch((err) => {

@@ -10,12 +10,28 @@ export interface LogParams {
 }
 
 export async function logToDb(db: any, params: LogParams): Promise<void> {
-  await db.insert(actionLogs).values({
-    runId: params.runId,
-    stepIndex: params.stepIndex,
-    actionType: params.actionType,
-    thought: params.thought,
-    parameters: params.parameters || null,
-    screenshotUrl: params.screenshotUrl || null,
-  });
+  try {
+    await db.insert(actionLogs).values({
+      runId: params.runId,
+      stepIndex: params.stepIndex,
+      actionType: params.actionType,
+      thought: params.thought,
+      parameters: params.parameters || null,
+      screenshotUrl: params.screenshotUrl || null,
+    });
+  } catch (err) {
+    const memLogs = (global as any).memoryLogs;
+    if (memLogs) {
+      memLogs.push({
+        id: Math.random().toString(),
+        runId: params.runId,
+        stepIndex: params.stepIndex,
+        actionType: params.actionType,
+        thought: params.thought,
+        parameters: params.parameters || null,
+        screenshotUrl: params.screenshotUrl || null,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
 }
