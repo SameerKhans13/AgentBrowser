@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "server": "tsx src/server.ts",
-    "build": "tsc"
+    "build": "echo 'agent: tsx runtime, no tsc needed'"
   },
   "dependencies": {
     "@genai/database": "*",

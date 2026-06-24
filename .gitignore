@@ -26,3 +26,4 @@ Thumbs.db
 **/src/**/*.js
 **/src/**/*.js.map
 **/src/**/*.d.ts
+!**/src/vite-env.d.ts
