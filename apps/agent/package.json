@@ -12,6 +12,7 @@
   "dependencies": {
     "@genai/database": "*",
     "@google/generative-ai": "^0.11.3",
+    "agent-browser": "^0.31.1",
     "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.30.10",
