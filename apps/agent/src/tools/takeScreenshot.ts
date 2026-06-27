@@ -5,6 +5,6 @@ import path from 'path';
 export async function takeScreenshot(page: Page, filePath: string): Promise<string> {
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
-  await page.screenshot({ path: filePath, fullPage: true });
+  await page.screenshot({ path: filePath });
   return filePath;
 }
