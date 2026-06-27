@@ -15,7 +15,7 @@ export async function openBrowser(): Promise<{
   }
 
   console.log(`Launching browser: ${browserType}`);
-  const browser = await launcher.launch({ headless: false });
+  const browser = await launcher.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
   });
