@@ -31,4 +31,4 @@ ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y xvfb xauth && rm -rf /var/lib/apt/lists/*
 
 # Start server using xvfb virtual display
-CMD ["xvfb-run", "--server-args=-screen 0 1280x800x24", "npm", "run", "server", "--workspace=agent"]
+CMD ["xvfb-run", "--server-args=-screen 0 1280x800x24", "npx", "tsx", "apps/agent/src/server.ts"]
