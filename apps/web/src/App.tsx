@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 const PAGE_SIZE = 6;
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
