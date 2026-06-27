@@ -7,7 +7,7 @@
     "dev": "tsx src/server.ts",
     "server": "tsx src/server.ts",
     "start": "tsx src/server.ts",
-    "build": "echo 'agent: tsx runtime, no tsc needed'"
+    "build": "npx playwright install --with-deps chromium"
   },
   "dependencies": {
     "@genai/database": "*",
